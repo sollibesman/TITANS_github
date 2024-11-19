@@ -1,0 +1,2619 @@
+---
+title: "Markdown title"
+author: "IPD-PMA team"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r loading packages,include=FALSE}
+library(tidyverse)
+library(lubridate)
+#library(kableExtra)
+library(broom)
+#library(readr)
+#library(viridis)
+library(janitor)
+library(flextable)
+#library(docxtools)
+#for white line on table cells
+#library(officer)
+library(readxl)
+
+
+#for negative binomial models it affects a few functions so using MASS:: instead
+#library(MASS)
+
+
+#for mediation analysis
+library(mediation)
+library(medflex)
+
+# for viewing models, one i think was for astrix based on pvlaue
+library(pacman)
+library(gtools)
+
+library(cowplot)
+library(flextable)
+library(gtsummary)
+library(knitr)
+
+
+```
+
+
+```{r chunk_options, include=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=50),
+               tidy=TRUE,echo = FALSE,fig.pos='htb!',
+               fig.align='center',
+               fig.width=6, fig.height=3.2, warning =F,
+               message = FALSE,
+               error = TRUE,
+               include = FALSE)
+```
+
+
+
+
+
+```{r}
+
+
+#### Importing
+
+load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
+
+
+final_df <- titans_final_df
+
+
+final_df <- final_df %>% filter(!is.na(treatment_cat))
+
+#formating
+final_df <- final_df %>% mutate(across(c(treatment_cat1,multiple,rc_transfusion_titans, mech_vent_combined), as.factor),
+                                 across(c(transfusions_n_combined, cumalitive_blood_vol_sampled, arterial_lines, calculated_total_arterial_line_time_hr, blood_pressure_low_mean), function(x) as.numeric(as.character(x)) )
+)
+
+
+
+# making infants that were no to 'any transfusion', and NA for 'trans count' now 0
+final_df$transfusions_n_combined <- ifelse((is.na(final_df$transfusions_n_combined)|final_df$transfusions_n_combined=="0") & final_df$rc_transfusion_titans=="0", 0,final_df$transfusions_n_combined)
+
+
+
+final_df$transfusions_n_combined <- ifelse(final_df$transfusions_n_combined==0 & final_df$rc_transfusion_titans=="1", NA,final_df$transfusions_n_combined)
+
+
+#logic check of coding for transfusion vol
+final_df$calculated_total_rc_transfusions_vol1 <- ifelse(is.na(final_df$calculated_total_rc_transfusions_vol1) & final_df$rc_transfusion_titans==0, 0,final_df$calculated_total_rc_transfusions_vol1)
+
+
+final_df$calculated_total_rc_transfusions_vol1 <- ifelse(final_df$calculated_total_rc_transfusions_vol1==0 & final_df$rc_transfusion_titans==1, NA,final_df$calculated_total_rc_transfusions_vol1)
+
+
+
+# making infants that were yes to 'any transfusion' and 'trans vol' = 0 into NA
+final_df$calculated_total_rc_transfusions_vol <- ifelse(final_df$rc_transfusion_titans=="1"&final_df$calculated_total_rc_transfusions_vol==0, NA,final_df$calculated_total_rc_transfusions_vol)
+
+
+
+#hist(final_df$calculated_total_rc_transfusions_vol, breaks=1000)
+
+
+
+
+final_df$calculated_total_rc_transfusions_vol <- coalesce(final_df$calculated_total_rc_transfusions_vol.x, final_df$calculated_total_rc_transfusions_vol.y)
+
+# making infants that were no to receive 'any transfusion', and NA for 'trans vol' now 0
+final_df$calculated_total_rc_transfusions_vol <- ifelse(is.na(final_df$calculated_total_rc_transfusions_vol) & final_df$rc_transfusion_titans==0, 0,final_df$calculated_total_rc_transfusions_vol)
+
+final_df$calculated_total_rc_transfusions_vol_scaled <- final_df$calculated_total_rc_transfusions_vol/100 
+
+
+
+#filter out hypoplastic anaemia and aplastic anaemia
+final_df <- final_df %>% filter((hypoplastic_anaemia!="1"|is.na(hypoplastic_anaemia)) &(aplastic_anaemia!="1"|is.na(aplastic_anaemia)) )
+
+
+#scalling because numbers are so large
+final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sampled/1000
+
+#removing outliers
+ final_df$calculated_total_arterial_line_time_hr <- ifelse(final_df$calculated_total_arterial_line_time_hr<0|final_df$calculated_total_arterial_line_time_hr>2000, NA, final_df$calculated_total_arterial_line_time_hr)
+  
+
+#   final_df$rc_transfusion_date01 <- final_df$rc_transfusion_date01 %>% as.Date
+#  final_df$dob <- final_df$dob %>% as.Date
+#   final_df$infirstweek <-  final_df$rc_transfusion_date01 -  final_df$dob
+# table(final_df$infirstweek)
+```
+
+# Checking associations
+
+### Between treatment and mediators
+```{r}
+treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
+
+
+treatmentmodel %>% tbl_regression(exponentiate = TRUE)
+
+
+
+
+
+```
+
+
+### global models for outcome any blood transfusion
+```{r}
+
+
+
+adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)
+
+
+adjustedfullmodel %>% tbl_regression(exponentiate = TRUE)
+```
+
+
+
+
+```{r}
+unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
+  tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
+
+
+
+adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)%>%  
+  tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
+
+
+
+adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
+  tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
+
+
+
+adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
+
+
+
+adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
+
+
+
+
+models.a<-tbl_stack(list(unadjustedmodel, 
+                         adjusted_basedlinedmodel, 
+                         adjusted_hct_mediator_model,
+                         adjusted_severity_of_illness_mediator_model,
+                         adjustedfullmodel))
+
+
+models.a$table_body %>%
+  mutate(name = case_when(tbl_id1==1 ~ "Unadjusted", 
+                          tbl_id1==2 ~ "Adjusted for baseline covariates" , 
+                          tbl_id1==3 ~ "Hct Mediation adjusted",
+                          tbl_id1==4 ~ "Severity of illness Mediation adjusted",
+                          tbl_id1==5 ~ "Global model",) %>%
+           as.factor()) %>%
+  ggplot(aes(y=fct_reorder(name, -tbl_id1), x=estimate)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=conf.high, xmin=conf.low), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a
+
+plot.a
+```
+
+
+### testing alternate volume models
+```{r}
+
+
+
+#final_df %>% filter(rc_transfusion_titans=="1" & calculated_total_rc_transfusions_vol.x==0 )%>%  select(centre.x, contains("rc_transfusion_titans"), contains("calculated_total_rc_transfusions_vol"), contains("transfusions_n_combined"))%>% view()
+
+
+#final_df %>% select(contains("rc_transfusion_titans"), contains("calculated_total_rc_transfusions_vol"), contains("transfusions_n_combined"))%>% view()
+
+
+#final_df <- 
+  
+# hist(final_df$calculated_total_rc_transfusions_vol1,breaks=100)
+
+  
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  #!is.na(cumalitive_blood_vol_sampled)&
+                                 # !is.na(arterial_lines)&
+                                 # !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(cumalitive_blood_vol_sampled_scaled)&
+                                 !is.na(calculated_total_rc_transfusions_vol)&calculated_total_rc_transfusions_vol>0
+                                 )
+
+
+
+inverse.gaussian.model <- glm(calculated_total_rc_transfusions_vol ~ treatment_cat1 + GA_weeks_and_days_integer + multiple, data=final_df1[final_df1$calculated_total_rc_transfusions_vol>0,], family =inverse.gaussian(link="1/mu^2"))
+gamma.model <- glm(calculated_total_rc_transfusions_vol ~ treatment_cat1 + GA_weeks_and_days_integer + multiple, data=final_df1[final_df1$calculated_total_rc_transfusions_vol>0,], family =Gamma())
+
+
+poisson.model <- glm(calculated_total_rc_transfusions_vol ~ treatment_cat1 + GA_weeks_and_days_integer + multiple, data=final_df1[final_df1$calculated_total_rc_transfusions_vol>0,], family =poisson())
+quassipoisson.model <- glm(calculated_total_rc_transfusions_vol ~ treatment_cat1 + GA_weeks_and_days_integer + multiple, data=final_df1, family =quasipoisson(link="log"))
+
+hist(final_df1[final_df1$calculated_total_rc_transfusions_vol>0,]$calculated_total_rc_transfusions_vol, breaks=1000)
+hist(final_df1$calculated_total_rc_transfusions_vol, breaks=1000)
+
+options(scipen=999)
+#rbind(broom::tidy(test2, exponentiate=T)[2,], broom::tidy(test4, exponentiate=T)[2,], broom::tidy(test)[2,])
+
+#need to do robust standard errors for poisson 
+library("sandwich")
+library("lmtest")
+coeftest(test2, vcov = sandwich)
+#coeftest(test4, vcov = sandwich)
+
+
+broom::tidy(test2, exponentiate=T)[2,]
+broom::tidy(test)[2,]
+#broom::tidy(test4, exponentiate=T)[2,]
+
+summary(test2)
+plot(inverse.gaussian.model, which = 2)
+plot(gamma.model, which = 2)
+plot(poisson.model , which = 2)
+plot(quassipoisson.model)
+
+tidy(test)
+hist(final_df$calculated_total_rc_transfusions_vol,breaks = 300 )
+
+
+
+performance::check_zeroinflation(quassipoisson.model)
+
+
+check_zeroinflation2 <- function(x, tolerance = 0.05) {
+  # check if we have poisson
+  model_info <- insight::model_info(x)
+  if (!model_info$is_count) {
+    insight::format_error("Model must be from Poisson-family.")
+  }
+
+  # get actual zero of response
+  obs.zero <- sum(insight::get_response(x, verbose = FALSE) == 0L)
+
+  if (obs.zero == 0) {
+    insight::print_color("Model has no observed zeros in the response variable.\n", "red")
+    return(NULL)
+  }
+
+  # get predictions of outcome
+  mu <- stats::fitted(x)
+
+  # get overdispersion parameters
+  if (model_info$is_negbin) {
+    if (methods::is(x, "glmmTMB")) {
+      theta <- stats::sigma(x)
+    } else if (methods::is(x, "glmerMod")) {
+      theta <- environment(x@resp$family$aic)[[".Theta"]]
+    } else {
+      theta <- x$theta
+    }
+  } else {
+    theta <- NULL
+  }
+
+  # get predicted zero-counts
+  if (!is.null(theta)) {
+    pred.zero <- round(sum(stats::dnbinom(x = 0, size = theta, mu = mu)))
+  } else {
+    pred.zero <- round(sum(stats::dpois(x = 0, lambda = mu)))
+  }
+
+  # proportion
+  structure(
+    class = "check_zi",
+    list(
+      predicted.zeros = pred.zero,
+      observed.zeros = obs.zero,
+      ratio = pred.zero / obs.zero,
+      tolerance = tolerance
+    )
+  )
+}
+
+check_zeroinflation2(quassipoisson.model)
+
+plot(quassipoisson.model, which=2)
+
+plot(inverse.gaussian.model, which=2)
+#summary(guassian.model_mediator)
+```
+
+
+# Medflex (sequential approach)
+
+https://academic.oup.com/ije/article/47/3/829/4829681?login=true 
+
+kristy paper
+https://academic.oup.com/ejendo/article/189/1/50/7219871?login=true
+https://github.com/kristyrobledo/T4DM_mediation_paper
+
+instruction paper
+https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-022-01764-w
+
+(sup materials)
+https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/MediaObjects/12874_2022_1764_MOESM1_ESM.pdf
+
+## Outcome: transufsion any (y/n)
+
+### Mediation of Hct peak (M1 only) 
+
+
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any <- cat.extra
+
+
+prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%"))
+
+
+```
+
+
+
+
+### Joint model including both Hct (M1) and Severity of illness (M2)
+
+
+
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+#==========================================================================================================
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+#code to table results
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_any <- cat.extra
+
+
+prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
+
+
+```
+
+### allowing mediators to interaction
+
+```{r}
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+
+
+
+
+impdata<-neImpute(rc_transfusion_titans ~ as.factor(treatment_cat1)+ hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df1, nMed=4)
+#head(impdata)
+nemod=neModel(rc_transfusion_titans ~treatment_cat10+ treatment_cat11+ GA_weeks_and_days_integer +  multiple, family =  binomial("logit"), expData = impdata,se="bootstrap",nBoot = 1000)
+summary(nemod)
+lht<-neLht(nemod,linfct=c("treatment_cat101 = 0",
+                                          "treatment_cat111  = 0",
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+exp(cbind(coef(lht),confint(lht,type="perc"))) #confint with bootstrap
+```
+
+
+
+## Outcome: transfusion count (n)
+ 
+###  Mediation of Hct peak (M1 only) 
+
+https://academic.oup.com/ije/article/47/3/829/4829681?login=true 
+
+example of sequential mediation
+```{r}
+
+#library(medflex)
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  #!is.na(cumalitive_blood_vol_sampled)&
+                                  #!is.na(arterial_lines)&
+                                 # !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(transfusions_n_combined))
+
+
+impData <- medflex::neImpute(transfusions_n_combined ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                     #mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = poisson(link = "log"), nMed = 1, data = final_df1)
+
+#?neImpute
+#head(impData)
+neMod.extra.cont <- medflex::neModel(transfusions_n_combined ~ treatment_cat10+
+                              treatment_cat11 +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                    # mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = poisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_n <- cat.extra
+
+
+prop_mediated_M1.model_trans_n <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_n , "%"))
+
+```
+
+
+
+
+### Joint model including both Hct (M1) and Severity of illness (M2)
+
+```{r}
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(transfusions_n_combined))
+
+
+
+
+
+# impdata<-neImpute(transfusions_n_combined ~ as.factor(treatment_cat1)+ hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df1, nMed=4)
+# head(impdata)
+# nemod=neModel(transfusions_n_combined ~treatment_cat10+ treatment_cat11+ GA_weeks_and_days_integer +  multiple, family =  binomial("logit"), expData = impdata,se="bootstrap",nBoot = 1000)
+# summary(nemod)
+# lht<-neLht(nemod,linfct=c("treatment_cat101 = 0", 
+#                                           "treatment_cat111  = 0", 
+#                                           "treatment_cat101 + treatment_cat111  = 0"))
+# exp(cbind(coef(lht),confint(lht,type="perc"))) #confint with bootstrap
+
+
+#==========================================================================================================
+impData <- medflex::neImpute(transfusions_n_combined ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = poisson(link = "log"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(transfusions_n_combined ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = poisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+#code to table results
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_n <- cat.extra
+
+
+prop_mediated_joint_model_trans_n <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_n, "%")
+```
+
+
+
+## Outcome: transfusion vol
+ 
+### Mediation of Hct peak (M1 only) 
+
+https://academic.oup.com/ije/article/47/3/829/4829681?login=true 
+
+example of sequential mediation
+```{r}
+
+#library(medflex)
+
+
+final_df$calculated_total_rc_transfusions_vol <- coalesce(final_df$calculated_total_rc_transfusions_vol.x, final_df$calculated_total_rc_transfusions_vol.y)
+
+
+png(filename="distribution_of_volume_transfused.png", width = 600,height = 400)
+hist(final_df$calculated_total_rc_transfusions_vol1, breaks = nrow(final_df[!is.na(final_df$calculated_total_rc_transfusions_vol1),])/4,
+                                                                                                                          , xlab="Red cell transfusion volume",  main = "Distribution of red cell transfusion volume")
+
+dev.off()
+
+hist(final_df[!is.na(final_df$calculated_total_rc_transfusions_vol),]$calculated_total_rc_transfusions_vol, breaks = nrow(final_df[!is.na(final_df$calculated_total_rc_transfusions_vol),]), ylab="Red cell volume transfused")
+?hist
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  #!is.na(cumalitive_blood_vol_sampled)&
+                                 # !is.na(arterial_lines)&
+                                 # !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(calculated_total_rc_transfusions_vol1))
+
+
+
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                     #mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = quasipoisson(link = "log"), nMed = 1, data = final_df1)
+
+#?neImpute
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10+
+                              treatment_cat11 +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                    # mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = quasipoisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_vol <- cat.extra
+
+
+prop_mediated_M1.model_trans_vol <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+prop_mediated_M1.model_trans_vol
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_vol , "%"))
+
+```
+
+
+### Joint model including both Hct (M1) and Severity of illness (M2)
+
+```{r}
+
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(calculated_total_rc_transfusions_vol1))
+
+
+
+
+# 
+# impdata<-neImpute(calculated_total_rc_transfusions_vol1 ~ as.factor(treatment_cat1)+ hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df1, nMed=4)
+# head(impdata)
+# nemod=neModel(calculated_total_rc_transfusions_vol1 ~treatment_cat10+ treatment_cat11+ GA_weeks_and_days_integer +  multiple, family =  binomial("logit"), expData = impdata,se="bootstrap",nBoot = 1000)
+# summary(nemod)
+# lht<-neLht(nemod,linfct=c("treatment_cat101 = 0", 
+#                                           "treatment_cat111  = 0", 
+#                                           "treatment_cat101 + treatment_cat111  = 0"))
+# exp(cbind(coef(lht),confint(lht,type="perc"))) #confint with bootstrap
+
+
+#==========================================================================================================
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = quasipoisson(link = "log"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = poisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+
+
+#code to table results
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_vol <- cat.extra
+
+
+prop_mediated_joint_model_trans_vol <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",joint.M1M2.model_transfusion_vol, "%")
+
+```
+
+## Outcome: transfusion vol filtering for positive only and using inverse guassian
+ 
+### Mediation of Hct peak (M1 only) 
+
+https://academic.oup.com/ije/article/47/3/829/4829681?login=true 
+
+example of sequential mediation
+```{r}
+
+#library(medflex)
+
+
+final_df$calculated_total_rc_transfusions_vol <- coalesce(final_df$calculated_total_rc_transfusions_vol.x, final_df$calculated_total_rc_transfusions_vol.y)
+
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  #!is.na(cumalitive_blood_vol_sampled)&
+                                 # !is.na(arterial_lines)&
+                                 # !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(calculated_total_rc_transfusions_vol1)&calculated_total_rc_transfusions_vol1>0)
+
+
+
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                     #mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = quasipoisson(link="log"),
+                    nMed = 1, data = final_df1)
+
+#?neImpute
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10+
+                              treatment_cat11 +
+                    # cumalitive_blood_vol_sampled + 
+                    #arterial_lines+
+                    # mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = quasipoisson(link="log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_vol <- cat.extra
+
+
+prop_mediated_M1.model_trans_vol <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+prop_mediated_M1.model_trans_vol
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_vol , "%"))
+
+```
+
+
+### Joint model including both Hct (M1) and Severity of illness (M2)
+
+```{r}
+
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                  !is.na(calculated_total_rc_transfusions_vol1)&calculated_total_rc_transfusions_vol1>0)
+
+
+
+
+# 
+# impdata<-neImpute(calculated_total_rc_transfusions_vol1 ~ as.factor(treatment_cat1)+ hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df1, nMed=4)
+# head(impdata)
+# nemod=neModel(calculated_total_rc_transfusions_vol1 ~treatment_cat10+ treatment_cat11+ GA_weeks_and_days_integer +  multiple, family =  binomial("logit"), expData = impdata,se="bootstrap",nBoot = 1000)
+# summary(nemod)
+# lht<-neLht(nemod,linfct=c("treatment_cat101 = 0", 
+#                                           "treatment_cat111  = 0", 
+#                                           "treatment_cat101 + treatment_cat111  = 0"))
+# exp(cbind(coef(lht),confint(lht,type="perc"))) #confint with bootstrap
+
+
+#==========================================================================================================
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = quasipoisson(link="log"),
+                    nMed = 4, data = final_df1)
+
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = quasipoisson(link="log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+
+
+#code to table results
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_vol <- cat.extra
+
+
+prop_mediated_joint_model_trans_vol <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",joint.M1M2.model_transfusion_vol, "%")
+
+```
+
+# Table of results
+
+```{r}
+
+M1_model_results <- bind_rows(list("M1 only: transfusion_any"=M1.model_transfusion_any, "M1 only: transfusion_n"=M1.model_transfusion_n,"M1 only: transfusion_vol"= M1.model_transfusion_vol), .id="id")
+M1_model_results <- M1_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
+M1_model_results$est_for_table <- paste0(M1_model_results$Estimate, " (", M1_model_results$`95%_CI_L`,"-", M1_model_results$`95%_CI_U`,")")
+
+M1_model_results <- M1_model_results %>% select(id, Effect, est_for_table)
+
+
+M1M2_joint_model_results <- bind_rows(list("M1M2 joint model: transfusion_any"=joint.M1M2.model_transfusion_any, "M1M2 joint model: transfusion_n"=joint.M1M2.model_transfusion_n,"M1M2 joint model: transfusion_vol"= joint.M1M2.model_transfusion_vol), .id="id")
+M1M2_joint_model_results <- M1M2_joint_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
+M1M2_joint_model_results$est_for_table <- paste0(M1M2_joint_model_results$Estimate, " (", M1M2_joint_model_results$`95%_CI_L`,"-", M1M2_joint_model_results$`95%_CI_U`,")")
+M1M2_joint_model_results <- M1M2_joint_model_results %>% select(id, Effect, est_for_table)
+
+
+combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
+
+write.csv(combined_mediation_results, file = "medflex_sequential_models.csv", row.names = F)
+
+```
+
+
+
+# Sensitvity analyses: exposure-mediator interactions
+
+
+
+
+#### Tranfusion (any) - Hct
+ 
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1)*hct_week1_peak + hct_week1_peak+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0",
+                                          "treatment_cat101:treatment_cat111=0" ))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any_medout_interaction <- cat.extra
+
+
+prop_mediated_M1.model_trans_any_medout_interaction  <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any_medout_interaction  , "%"))
+
+
+```
+
+#### Transfusion (any) - all mediator joint model
+
+```{r}
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1)*hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined + hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                 se="bootstrap",nBoot = 1000)
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0",
+                                          "treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_any_medout_interaction <- cat.extra
+
+
+prop_mediated_joint_model_trans_any_medout_interaction <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any_medout_interaction, "%")
+
+
+```
+
+
+
+#### Transfusion n - Hct
+
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(transfusions_n_combined) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(transfusions_n_combined ~ factor(treatment_cat1)*hct_week1_peak + hct_week1_peak+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family =  poisson(link = "log"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(transfusions_n_combined ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family =  poisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_n_medout_interaction <- cat.extra
+
+
+prop_mediated_M1.model_trans_n_medout_interaction  <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_n_medout_interaction  , "%"))
+
+
+```
+
+
+#### Transfusion n - all mediator join model (did not converge)
+
+```{r}
+
+
+final_df1 <- final_df %>% filter(!is.na(transfusions_n_combined)&
+                                   !is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+# tried with just mediator two interactions
+impData <- medflex::neImpute(transfusions_n_combined ~ factor(treatment_cat1)*cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined + hct_week1_peak+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = poisson(link="log"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(transfusions_n_combined ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = poisson(link="log"),
+                  expData = impData,
+                 se="bootstrap",nBoot = 1000)
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_n_medout_interaction <- cat.extra
+
+
+prop_mediated_joint_model_trans_n_medout_interaction <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_n_medout_interaction, "%")
+
+
+```
+
+
+## Transfusion vol - Hct
+
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(calculated_total_rc_transfusions_vol1) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ factor(treatment_cat1)*hct_week1_peak + hct_week1_peak+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family =  poisson(link = "log"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family =  poisson(link = "log"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_vol_medout_interaction <- cat.extra
+
+
+prop_mediated_M1.model_trans_vol_medout_interaction  <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_vol_medout_interaction  , "%"))
+
+
+```
+
+
+### Transfusion vol -  all mediator joint model (did not converge)
+
+```{r}
+
+
+final_df1 <- final_df %>% filter(!is.na(calculated_total_rc_transfusions_vol1)&
+                                   !is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+final_df1$mech_vent_combined <- final_df1$mech_vent_combined %>% fct_recode("1"="0", "2"="1")
+
+#i tried multiple iterations of this none converged
+impData <- medflex::neImpute(calculated_total_rc_transfusions_vol1 ~ 
+                               factor(treatment_cat1)*hct_week1_peak*cumalitive_blood_vol_sampled*arterial_lines*factor(mech_vent_combined) + hct_week1_peak + cumalitive_blood_vol_sampled + arterial_lines + factor(mech_vent_combined)+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = poisson(link="log"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(calculated_total_rc_transfusions_vol1 ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = poisson(link="log"),
+                  expData = impData,
+                 se="bootstrap",nBoot = 1000)
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_vol_medout_interaction <- cat.extra
+
+
+prop_mediated_joint_model_trans_vol_medout_interaction <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_vol_medout_interaction, "%")
+
+
+```
+
+
+# Table of results (exposure-mediator interactions)
+
+```{r}
+
+M1_model_results_expmed_int <- bind_rows(list("M1 only: transfusion_any"=M1.model_transfusion_any_medout_interaction, "M1 only: transfusion_n"=M1.model_transfusion_n_medout_interaction,"M1 only: transfusion_vol"= M1.model_transfusion_vol_medout_interaction), .id="id")
+names(M1_model_results_expmed_int)
+M1_model_results_expmed_int <- M1_model_results_expmed_int %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
+M1_model_results_expmed_int$est_for_table <- paste0(M1_model_results_expmed_int$Estimate, " (", M1_model_results_expmed_int$`95%_CI_L`,"-", M1_model_results_expmed_int$`95%_CI_U`,")")
+
+M1_model_results_expmed_int <- M1_model_results_expmed_int %>% select(id, Effect, est_for_table)
+
+
+
+
+
+M1M2_joint_model_results <- bind_rows(list("M1M2 joint model: transfusion_any"=joint.M1M2.model_transfusion_any, #"M1M2 joint model: transfusion_n"=joint.M1M2.model_transfusion_n,"M1M2 joint model: transfusion_vol"= joint.M1M2.model_transfusion_vol), 
+                                           .id="id"))
+M1M2_joint_model_results <- M1M2_joint_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
+M1M2_joint_model_results$est_for_table <- paste0(M1M2_joint_model_results$Estimate, " (", M1M2_joint_model_results$`95%_CI_L`,"-", M1M2_joint_model_results$`95%_CI_U`,")")
+M1M2_joint_model_results <- M1M2_joint_model_results %>% select(id, Effect, est_for_table)
+
+
+combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
+
+write.csv(combined_mediation_results, file = "medflex_sequential_models.csv", row.names = F)
+
+```
+# Sensitvity analyses: adjusting for additional pre-intervention variables (sex, delivery mode)
+
+#### hct only
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                   !is.na(gender)&
+                                   !is.na(delivery_mode))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                      gender+
+                      delivery_mode,
+                    family = binomial("logit"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                      gender+
+                      delivery_mode,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any_pretrtvariables  <- cat.extra
+
+
+prop_mediated_M1.model_trans_any_pretrtvariables <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any_pretrtvariables , "%"))
+
+
+```
+#### joint
+
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                   !is.na(gender)&
+                                   !is.na(delivery_mode)&
+                                   !is.na(cumalitive_blood_vol_sampled)&
+                                   !is.na(arterial_lines)&
+                                   !is.na(mech_vent_combined))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                      +cumalitive_blood_vol_sampled +
+                      arterial_lines+
+                       mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                      gender+
+                      delivery_mode,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                      gender+
+                      delivery_mode,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any_pretrtvariables <- cat.extra
+
+
+prop_mediated_M1.model_trans_any_pretrtvariables <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any_pretrtvariables , "%"))
+
+
+```
+
+
+
+# Sensitivity analyses adjusting for post intervention variables (IVH, PDA, NEC, sodium, oral iron)
+
+#### Hct only
+```{r}
+
+#formatting sodium first 24 hours
+final_df$sodium_datetime1_format <- final_df$sodium_datetime1 %>% as.Date()
+final_df$dob <- final_df$dob%>% as.Date()
+final_df$sodium1days <- final_df$sodium_datetime1_format -final_df$dob
+final_df$sodium1days_numeric <- final_df$sodium1days %>% as.numeric()
+
+final_df$sodium1days_numeric <- ifelse(is.na(final_df$sodium1days_numeric ), 0 , final_df$sodium1days_numeric)
+final_df$sodium1days_numeric <- ifelse(final_df$sodium1days_numeric<0|final_df$sodium1days_numeric>33,NA,final_df$sodium1days_numeric)
+
+final_df$sodiuminfirstday <- ifelse(final_df$sodium1days_numeric==1,1,0)
+
+#oral iron supplement pre transfusion
+final_df$oral_iron_pre_transfusion <- ifelse(final_df$oral_iron_date<final_df$rc_transfusion_date01, 1, 0)
+final_df$oral_iron_pre_transfusion <- ifelse(is.na(final_df$oral_iron_pre_transfusion), 0, final_df$oral_iron_pre_transfusion)
+  
+
+  
+
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                   !is.na(PDA_any)&
+                                   !is.na(IVH_grade)&
+                                   !is.na(NEC)&
+                                   !is.na(sodiuminfirstday)& 
+                                   !is.na(oral_iron_pre_transfusion))
+
+
+
+
+
+
+
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                      PDA_any+
+                      IVH_grade+
+                      NEC+
+                      sodiuminfirstday+
+                      oral_iron_pre_transfusion,
+                    family = binomial("logit"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple+
+                       PDA_any+
+                      IVH_grade+
+                      NEC+
+                      sodiuminfirstday+
+                      oral_iron_pre_transfusion,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any_psttrtvariables <- cat.extra
+
+
+prop_mediated_M1.model_trans_any_psttrtvariables  <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any_psttrtvariables  , "%"))
+```
+
+
+
+# Sensitvity analyses: exposure-covariate interactions
+
+
+
+
+#### Tranfusion (any) - Hct
+ 
+```{r}
+
+final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
+                                  !is.na(hct_week1_peak)&
+                                   !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) + hct_week1_peak+ factor(treatment_cat1)*GA_weeks_and_days_integer*multiple+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 1, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0",
+                                          "treatment_cat101:treatment_cat111= 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+M1.model_transfusion_any_medout_interaction <- cat.extra
+
+
+prop_mediated_M1.model_trans_any_medout_interaction  <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any_medout_interaction  , "%"))
+
+
+```
+
+#### Transfusion (any) - all mediator joint model
+
+```{r}
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) + hct_week1_peak *cumalitive_blood_vol_sampled*arterial_lines*mech_vent_combined + 
+                   factor(treatment_cat1)*GA_weeks_and_days_integer*multiple+ GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10*
+                              treatment_cat11 +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                 se="bootstrap",nBoot = 1000)
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+
+# 
+ #impdata<-neImpute(y ~ as.factor(treatment_cat1)*hct_week1_peak+ + hct_week1_peak+ GA_weeks_and_days_integer + multiple, family = binomial("logit"), data = final_df1, nMed=1)
+# nemod=neModel(y ~ a0*a1+c, family = "poisson", expData = impdata,se="bootstrap",nBoot = 1000)
+ #summary(nemod)
+#lht<-neLht(nemod,linfct=c("a01=0","a11+a01:a11=0", "a01+a11+a01:a11=0"))
+#exp(cbind(coef(lht),confint(lht,type="perc")))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111+treatment_cat101:treatment_cat111=0", 
+                                          "treatment_cat101 + treatment_cat111+treatment_cat101:treatment_cat111= 0",
+                                          "treatment_cat101:treatment_cat111 = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+#Formulat for table
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_any_medout_interaction <- cat.extra
+
+
+prop_mediated_joint_model_trans_any_medout_interaction <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any_medout_interaction, "%")
+
+
+```
+
+### models w blood pressure
+
+
+```{r}
+
+final_df$blood_pressure_low_mean2 <- final_df$blood_pressure_low_mean*-1
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple)&
+                                   !is.na(blood_pressure_low_mean2))
+
+
+#==========================================================================================================
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +blood_pressure_low_mean2+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 5, data = final_df1)
+
+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,                
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+#code to table results
+cat.extra <- cat.extra %>%
+  mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
+    "Estimate"= est,
+    "95%_CI_L"= `X95..LCL`,
+   "95%_CI_U"= `X95..UCL`,)
+row.names(cat.extra) <- NULL
+
+cat.extra
+
+
+joint.M1M2.model_transfusion_any_blood_pressure <- cat.extra
+
+
+prop_mediated_joint_model_trans_any_blood_pressure <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any_blood_pressure, "%")
+```
+
+
+
+# extra analyses for severity of illness but flawed
+
+### total indriect effect
+
+```{r, eval=F}
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +
+                     cumalitive_blood_vol_sampled+ 
+                    arterial_lines+
+                     mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+0.9/0.69
+t$coefficients[2,1]/t$coefficients[3,1]
+
+-2.8/-6.8
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+```
+### total indirect using code below
+https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/MediaObjects/12874_2022_1764_MOESM1_ESM.pdf 
+
+```{r, eval=F}
+
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak *
+                     cumalitive_blood_vol_sampled * 
+                    arterial_lines*
+                     mech_vent_combined *
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 4, data = final_df1)
+
+
+head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "bootstrap")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+```
+### 
+
+```{r, eval=F}
+install.packages("mma")
+library(mma)
+#mma: An R Package for Mediation Analysis with Multiple Mediators
+
+final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+data.bin <- data.org(x=final_df1[,c("treatment_cat1","hct_week1_peak", "cumalitive_blood_vol_sampled","arterial_lines","mech_vent_combined","GA_weeks_and_days_integer","multiple")],
+                     y =final_df1[,"rc_transfusion_titans"],
+                     pred=1,
+                     predref = "0",
+                     mediator = c(2:5),
+                     jointm=list(n=2,j1=c("hct_week1_peak"),
+                                 j2=c("cumalitive_blood_vol_sampled","arterial_lines","mech_vent_combined")),
+                     alpha=0.4,alpha2=0.4)
+summary(data.bin)
+#?mma::data.org
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### medflex severity of illness
+
+```{r, eval =F}
+
+
+
+final_df1 <- final_df %>% filter(#!is.na(hct_week1_peak)&
+                                  !is.na(cumalitive_blood_vol_sampled)&
+                                  !is.na(arterial_lines)&
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
+
+
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                    # hct_week1_peak +
+                     cumalitive_blood_vol_sampled + 
+                    arterial_lines+
+                     mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
+                    family = binomial("logit"), nMed = 3, data = final_df1)
+
+
+head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
+                    multiple,
+                  family = binomial("logit"),
+                  expData = impData,
+                  se = "robust")
+
+
+summary(neMod.extra.cont)
+
+cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
+
+lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
+                                          "treatment_cat111  = 0", 
+                                          "treatment_cat101 + treatment_cat111  = 0"))
+
+t<-summary(lht)
+
+cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
+
+t
+cat.extra
+
+#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
+pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
+pte.indirect.cat
+
+
+cat.extra %>%
+  mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
+  ggplot(aes(y=fct_rev(name), x=est)) +
+  geom_point(size=3)+
+  geom_errorbar(aes(xmax=X95..UCL, xmin=X95..LCL), size=0.5, width=0.1) +
+  labs(x="Odds ratio (95% CI)", y="")+
+  geom_vline(aes(xintercept= 1), linetype="dotted")+
+  coord_trans(x = scales:::log_trans(base = exp(1))) +
+  theme_minimal() -> plot.a2
+
+plot.a2
+
+
+
+# mod <- glm(rc_transfusion_titans ~ factor(treatment_cat1) +
+#                      hct_week1_peak +
+#                    #  cumalitive_blood_vol_sampled + 
+#                    # arterial_lines+
+#                    #  mech_vent_combined +
+#                     #GA_weeks_and_days_integer +
+#                     multiple,
+#                     family = binomial("logit"), data=final_df1) #%>%
+#   tbl_regression(exponentiate = TRUE,
+#                  show_single_row="treatment_cat1")#, 
+#                  #include = c("treatment_cat1", contains("hct"))) 
+#   
+#   allcat
+
+#exp(-0.08847)
+```
