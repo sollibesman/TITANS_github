@@ -5,43 +5,29 @@ output: github_document
 ```{r loading packages,include=FALSE}
 library(tidyverse)
 library(lubridate)
-#library(kableExtra)
 library(broom)
-#library(readr)
-#library(viridis)
 library(janitor)
 library(flextable)
-#library(docxtools)
-#for white line on table cells
-#library(officer)
 library(readxl)
-
-
 #for negative binomial models it affects a few functions so using MASS:: instead
 #library(MASS)
-
-
 #for mediation analysis
 library(mediation)
 library(medflex)
-
 # for viewing models, one i think was for astrix based on pvlaue
 library(pacman)
 library(gtools)
-
 library(cowplot)
 library(flextable)
 library(gtsummary)
 library(knitr)
-
 library(kableExtra)
-#test
 
 ```
 
 
 ```{r chunk_options, include=FALSE}
-library(knitr)
+
 opts_chunk$set(echo = TRUE,
                tidy=TRUE,
                comment = "#>",
@@ -57,7 +43,7 @@ load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
 ```
 
 
-```{r, echo=F}
+```{r, echo=F, warning =F}
 knit(input="Analysis_medflex_for_Git2.md", output = "TITANS_medlfex.md") 
 
 final_df <- titans_final_df
@@ -87,14 +73,8 @@ final_df$calculated_total_rc_transfusions_vol1 <- ifelse(is.na(final_df$calculat
 final_df$calculated_total_rc_transfusions_vol1 <- ifelse(final_df$calculated_total_rc_transfusions_vol1==0 & final_df$rc_transfusion_titans==1, NA,final_df$calculated_total_rc_transfusions_vol1)
 
 
-
 # making infants that were yes to 'any transfusion' and 'trans vol' = 0 into NA
 final_df$calculated_total_rc_transfusions_vol <- ifelse(final_df$rc_transfusion_titans=="1"&final_df$calculated_total_rc_transfusions_vol==0, NA,final_df$calculated_total_rc_transfusions_vol)
-
-
-
-#hist(final_df$calculated_total_rc_transfusions_vol, breaks=1000)
-
 
 
 
@@ -118,16 +98,14 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
  final_df$calculated_total_arterial_line_time_hr <- ifelse(final_df$calculated_total_arterial_line_time_hr<0|final_df$calculated_total_arterial_line_time_hr>2000, NA, final_df$calculated_total_arterial_line_time_hr)
   
 
-#   final_df$rc_transfusion_date01 <- final_df$rc_transfusion_date01 %>% as.Date
-#  final_df$dob <- final_df$dob %>% as.Date
-#   final_df$infirstweek <-  final_df$rc_transfusion_date01 -  final_df$dob
-# table(final_df$infirstweek)
 ```
 
 # Checking associations
 
 ### Between treatment and mediators
-```{r}
+
+
+```{r, warning =F}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
 model <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
@@ -141,7 +119,8 @@ model <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 
 examining the relationship between treatment and transfusions (any) adjusting for all covariates
 
-```{r}
+
+```{r, warning =F}
 
 
 
@@ -150,13 +129,13 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
 
 model <- adjustedfullmodel %>% tbl_regression(exponentiate = TRUE)
 
-model
+
 ```
 
 
 
 
-```{r}
+```{r, warning =F}
 unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
@@ -164,7 +143,7 @@ unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomi
 ```
 
 
-```{r}
+```{r, warning =F}
 adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)%>%  
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
@@ -172,7 +151,7 @@ adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_
 ```
 
 
-```{r}
+```{r, warning =F}
 adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
@@ -180,21 +159,21 @@ adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_w
 ```
 
 
-```{r}
+```{r, warning =F}
 adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 ```
 
 
-```{r}
+```{r, warning =F}
 adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 ```
 
 
-```{r}
+```{r, warning =F}
 models.a<-tbl_stack(list(unadjustedmodel, 
                          adjusted_basedlinedmodel, 
                          adjusted_hct_mediator_model,
@@ -210,7 +189,7 @@ models.a$table_body %>%
            as.factor()) %>%
   ggplot(aes(y=fct_reorder(name, -tbl_id1), x=estimate)) +
   geom_point(size=3)+
-  geom_errorbar(aes(xmax=conf.high, xmin=conf.low), linewidth=0.5, width=0.1) +
+  geom_errorbar(aes(xmax=conf.high, xmin=conf.low), size=0.5, width=0.1) +
   labs(x="Odds ratio (95% CI)", y="")+
   geom_vline(aes(xintercept= 1), linetype="dotted")+
   coord_trans(x = scales:::log_trans(base = exp(1))) +
@@ -238,7 +217,7 @@ https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/Media
 ### Mediation of Hct peak (M1 only) 
 
 
-```{r}
+```{r, warning =F}
 final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                   !is.na(hct_week1_peak)&
                                    !is.na(GA_weeks_and_days_integer)&
@@ -468,9 +447,9 @@ combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
 
 
 
-combined_mediation_results #%>% kable() %>% kable_styling()
+combined_mediation_results 
 
-#write.csv(combined_mediation_results, file = "medflex_sequential_models.csv", row.names = F)
+
 
 ```
 
