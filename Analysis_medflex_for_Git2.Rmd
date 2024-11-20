@@ -45,6 +45,7 @@ library(kableExtra)
 library(knitr)
 opts_chunk$set(echo = TRUE,
                tidy=TRUE,
+               comment = "#>",
                out.width = "100%")
 ```
 
@@ -53,10 +54,12 @@ opts_chunk$set(echo = TRUE,
 
 
 ```{r, echo=F}
-
-
 load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
+```
 
+
+```{r, echo=F}
+knit(input="Analysis_medflex_for_Git2.md", output = "TITANS_medlfex.md") 
 
 final_df <- titans_final_df
 
