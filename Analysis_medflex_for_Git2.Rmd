@@ -111,9 +111,8 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 ```{r, warning =F}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
-model <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
+ glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE)
 
-model
 
 ```
 
@@ -130,8 +129,8 @@ examining the relationship between treatment and transfusions (any) adjusting fo
 adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)
 
 
-model <- adjustedfullmodel %>% tbl_regression(exponentiate = TRUE)
-model
+glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE)
+
 
 ```
 
@@ -450,7 +449,7 @@ combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
 
 
 
-combined_mediation_results 
+combined_mediation_results %>% kable()
 
 
 
