@@ -50,7 +50,7 @@ opts_chunk$set(tidy.opts=list(width.cutoff=50),
                fig.width=6, fig.height=3.2, warning =F,
                message = FALSE,
                error = TRUE,
-               include = FALSE)
+               include = TRUE)
 ```
 
 
