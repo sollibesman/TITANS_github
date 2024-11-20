@@ -1,7 +1,4 @@
 ---
-title: "Markdown title"
-author: "IPD-PMA team"
-date: "`r Sys.Date()`"
 output: github_document
 
 ---
@@ -46,20 +43,16 @@ library(kableExtra)
 
 ```{r chunk_options, include=FALSE}
 library(knitr)
-opts_chunk$set(tidy.opts=list(width.cutoff=50),
-               tidy=TRUE,echo = FALSE,fig.pos='htb!',
-               fig.align='center',
-               fig.width=6, fig.height=3.2, warning =F,
-               message = FALSE,
-               error = TRUE,
-               include = TRUE)
+opts_chunk$set(echo = TRUE,
+               tidy=TRUE,
+               out.width = "100%")
 ```
 
 
 
 
 
-```{r}
+```{r, echo=F}
 
 
 load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
@@ -135,12 +128,7 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 ```{r}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
-
 treatmentmodel %>% tbl_regression(exponentiate = TRUE)
-
-
-
-
 
 ```
 
@@ -148,6 +136,7 @@ treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 ### global model
 
 examining the relationship between treatment and transfusions (any) adjusting for all covariates
+
 ```{r}
 
 
@@ -467,6 +456,9 @@ M1M2_joint_model_results <- M1M2_joint_model_results %>% select(id, Effect, est_
 
 
 combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
+
+
+
 combined_mediation_results #%>% kable() %>% kable_styling()
 
 #write.csv(combined_mediation_results, file = "medflex_sequential_models.csv", row.names = F)
