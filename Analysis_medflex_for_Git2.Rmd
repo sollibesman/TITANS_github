@@ -1,7 +1,10 @@
+---
+title: "Medflex"
+author: "Sol Libesman"
+output: 
+  github_document:
+---
 
----
-output: github_document
----
 
 ```{r loading packages,include=FALSE}
 library(tidyverse)
@@ -30,7 +33,6 @@ library(kableExtra)
 ```{r chunk_options, include=FALSE}
 
 opts_chunk$set(echo = TRUE,
-               tidy=TRUE,
                comment = "#>",
                out.width = "100%")
 ```
@@ -45,7 +47,7 @@ load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
 
 
 ```{r, echo=F, warning =F}
-knit(input="Analysis_medflex_for_Git2.md", output = "TITANS_medlfex.md") 
+#knit(input="Analysis_medflex_for_Git2.md", output = "TITANS_medlfex.md") 
 
 final_df <- titans_final_df
 
@@ -111,7 +113,7 @@ treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_samp
 
 model <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 
-
+model
 
 ```
 
@@ -129,7 +131,7 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
 
 
 model <- adjustedfullmodel %>% tbl_regression(exponentiate = TRUE)
-
+model
 
 ```
 
