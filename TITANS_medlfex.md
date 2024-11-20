@@ -36,10 +36,6 @@ model <- adjustedfullmodel %>%
     tbl_regression(exponentiate = TRUE)
 ```
 
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
 ``` r
 unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1, family = binomial("logit"),
     data = final_df) %>%
@@ -65,20 +61,12 @@ adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treat
     tbl_regression(exponentiate = TRUE, show_single_row = "treatment_cat1", include = c("treatment_cat1"))
 ```
 
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
 ``` r
 adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1 + hct_week1_peak +
     cumalitive_blood_vol_sampled_scaled + arterial_lines + mech_vent_combined + GA_weeks_and_days_integer +
     multiple, family = binomial("logit"), data = final_df) %>%
     tbl_regression(exponentiate = TRUE, show_single_row = "treatment_cat1", include = c("treatment_cat1"))
 ```
-
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
-    #> Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
 
 ``` r
 models.a <- tbl_stack(list(unadjustedmodel, adjusted_basedlinedmodel, adjusted_hct_mediator_model,
@@ -93,15 +81,7 @@ models.a$table_body %>%
     geom_errorbar(aes(xmax = conf.high, xmin = conf.low), size = 0.5, width = 0.1) +
     labs(x = "Odds ratio (95% CI)", y = "") + geom_vline(aes(xintercept = 1), linetype = "dotted") +
     coord_trans(x = scales:::log_trans(base = exp(1))) + theme_minimal() -> plot.a
-```
 
-    #> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-    #> ℹ Please use `linewidth` instead.
-    #> This warning is displayed once every 8 hours.
-    #> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    #> generated.
-
-``` r
 plot.a
 ```
 
@@ -129,15 +109,8 @@ instruction paper
 final_df1 <- final_df %>%
     filter(!is.na(rc_transfusion_titans) & !is.na(hct_week1_peak) & !is.na(GA_weeks_and_days_integer) &
         !is.na(multiple))
-```
 
-    #> Warning: Using one column matrices in `filter()` was deprecated in dplyr 1.1.0.
-    #> ℹ Please use one dimensional logical vectors instead.
-    #> This warning is displayed once every 8 hours.
-    #> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    #> generated.
 
-``` r
 impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) + hct_week1_peak +
     GA_weeks_and_days_integer + multiple, family = binomial("logit"), nMed = 1, data = final_df1)
 
