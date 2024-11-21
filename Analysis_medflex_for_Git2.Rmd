@@ -33,7 +33,7 @@ library(kableExtra)
 ```{r chunk_options, include=FALSE}
 
 opts_chunk$set(echo = TRUE,
-               comment = "#>",
+               #comment = "#>",
                out.width = "100%")
 ```
 
@@ -129,7 +129,7 @@ examining the relationship between treatment and transfusions (any) adjusting fo
 adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)
 
 
-glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE)
+glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE) %>% kable()
 
 
 ```
@@ -175,6 +175,8 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
 ```
 
 
+
+
 ```{r, warning =F}
 models.a<-tbl_stack(list(unadjustedmodel, 
                          adjusted_basedlinedmodel, 
@@ -187,12 +189,12 @@ models.a$table_body %>%
                           tbl_id1==2 ~ "Adjusted for baseline covariates" , 
                           tbl_id1==3 ~ "Hct Mediation adjusted",
                           tbl_id1==4 ~ "Severity of illness Mediation adjusted",
-                          tbl_id1==5 ~ "Global model",) %>%
+                          tbl_id1==5 ~ "Global model with Hct, severity of illness and covariates",) %>%
            as.factor()) %>%
   ggplot(aes(y=fct_reorder(name, -tbl_id1), x=estimate)) +
   geom_point(size=3)+
   geom_errorbar(aes(xmax=conf.high, xmin=conf.low), size=0.5, width=0.1) +
-  labs(x="Odds ratio (95% CI)", y="")+
+  labs(x="Odds ratio of treatment effect on transfusion any (y/n)", y="")+
   geom_vline(aes(xintercept= 1), linetype="dotted")+
   coord_trans(x = scales:::log_trans(base = exp(1))) +
   theme_minimal() -> plot.a
@@ -293,14 +295,18 @@ row.names(cat.extra) <- NULL
 M1.model_transfusion_any <- cat.extra
 
 
-M1.model_transfusion_any #%>% kable() %>% kable_styling()
+M1.model_transfusion_any %>% kable() #%>% kable_styling()
 
 
-prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
+
+
 ```
 
 
 ```{r}
+prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
 print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%"))
 
 
@@ -387,13 +393,15 @@ row.names(cat.extra) <- NULL
 
 
 joint.M1M2.model_transfusion_any <- cat.extra
-joint.M1M2.model_transfusion_any# %>% kable() %>% kable_styling()
+joint.M1M2.model_transfusion_any %>% kable()# %>% kable_styling()
 
-prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+
 ```
 
 
 ```{r}
+
+prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
 paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
 
 
@@ -430,10 +438,10 @@ exp(cbind(coef(lht),confint(lht,type="perc"))) #confint with bootstrap
 
 # Table of results
 
-```{r}
+```{r, warning=F}
 
 M1_model_results <- bind_rows(list("M1 only: transfusion_any"=M1.model_transfusion_any), .id="id")
-M1_model_results <- M1_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
+M1_model_results <- M1_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round,digits=2) )
 M1_model_results$est_for_table <- paste0(M1_model_results$Estimate, " (", M1_model_results$`95%_CI_L`,"-", M1_model_results$`95%_CI_U`,")")
 
 M1_model_results <- M1_model_results %>% select(id, Effect, est_for_table)
