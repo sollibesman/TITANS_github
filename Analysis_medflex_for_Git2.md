@@ -439,8 +439,6 @@ neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                   se = "robust")
 
 
-#summary(neMod.extra.cont)
-
 cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
 
 lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
@@ -451,7 +449,6 @@ t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-#t
 
 
 #pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
@@ -587,7 +584,7 @@ impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                     family = binomial("logit"), nMed = 4, data = final_df1)
 
 
-#head(impData)
+
 neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+ treatment_cat11 +
                     GA_weeks_and_days_integer+
                     multiple,
@@ -608,7 +605,7 @@ lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0",
 
 
 t<-summary(lht)
-#t
+
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
@@ -642,7 +639,6 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-#cat.extra
 
 
 joint.M1M2.model_transfusion_any <- cat.extra
@@ -677,10 +673,10 @@ Direct effect
 0.7636927
 </td>
 <td style="text-align:right;">
-0.5778973
+0.5817292
 </td>
 <td style="text-align:right;">
-1.0079939
+1.0130869
 </td>
 </tr>
 <tr>
@@ -691,10 +687,10 @@ Indirect effect
 0.9072675
 </td>
 <td style="text-align:right;">
-0.8046123
+0.7999069
 </td>
 <td style="text-align:right;">
-1.0286309
+1.0290641
 </td>
 </tr>
 <tr>
@@ -705,10 +701,10 @@ Total effect
 0.6928736
 </td>
 <td style="text-align:right;">
-0.5154864
+0.5146923
 </td>
 <td style="text-align:right;">
-0.9352713
+0.9425441
 </td>
 </tr>
 </tbody>
@@ -721,8 +717,8 @@ paste0("Proportion mediated: ",joint.M1M2.model_transfusion_any, "%")
 
     ## [1] "Proportion mediated: c(\"Direct effect\", \"Indirect effect\", \"Total effect\")%"
     ## [2] "Proportion mediated: c(0.763692704873228, 0.90726748915055, 0.692873562832926)%"  
-    ## [3] "Proportion mediated: c(0.577897280248151, 0.804612323208957, 0.515486378260197)%" 
-    ## [4] "Proportion mediated: c(1.00799392129656, 1.02863093407051, 0.935271349579594)%"
+    ## [3] "Proportion mediated: c(0.581729155999289, 0.799906861109076, 0.51469232411384)%"  
+    ## [4] "Proportion mediated: c(1.01308687645075, 1.02906414396486, 0.942544138974454)%"
 
 # Table of results
 
@@ -828,7 +824,7 @@ M1M2 joint model: transfusion_any
 Total effect
 </td>
 <td style="text-align:left;">
-0.69 (0.52-0.94)
+0.69 (0.51-0.94)
 </td>
 </tr>
 </tbody>
