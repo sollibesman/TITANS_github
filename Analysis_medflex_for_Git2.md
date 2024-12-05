@@ -673,10 +673,10 @@ Direct effect
 0.7636927
 </td>
 <td style="text-align:right;">
-0.5817292
+0.5791745
 </td>
 <td style="text-align:right;">
-1.0130869
+0.9996199
 </td>
 </tr>
 <tr>
@@ -687,10 +687,10 @@ Indirect effect
 0.9072675
 </td>
 <td style="text-align:right;">
-0.7999069
+0.8052631
 </td>
 <td style="text-align:right;">
-1.0290641
+1.0235292
 </td>
 </tr>
 <tr>
@@ -701,10 +701,10 @@ Total effect
 0.6928736
 </td>
 <td style="text-align:right;">
-0.5146923
+0.5129488
 </td>
 <td style="text-align:right;">
-0.9425441
+0.9302684
 </td>
 </tr>
 </tbody>
@@ -717,8 +717,8 @@ paste0("Proportion mediated: ",joint.M1M2.model_transfusion_any, "%")
 
     ## [1] "Proportion mediated: c(\"Direct effect\", \"Indirect effect\", \"Total effect\")%"
     ## [2] "Proportion mediated: c(0.763692704873228, 0.90726748915055, 0.692873562832926)%"  
-    ## [3] "Proportion mediated: c(0.581729155999289, 0.799906861109076, 0.51469232411384)%"  
-    ## [4] "Proportion mediated: c(1.01308687645075, 1.02906414396486, 0.942544138974454)%"
+    ## [3] "Proportion mediated: c(0.579174462272364, 0.805263064257347, 0.512948822349044)%" 
+    ## [4] "Proportion mediated: c(0.999619863392601, 1.02352919779915, 0.930268380966108)%"
 
 # Table of results
 
@@ -784,7 +784,7 @@ M1M2 joint model: transfusion_any
 Direct effect
 </td>
 <td style="text-align:left;">
-0.76 (0.58-1.01)
+0.76 (0.58-1)
 </td>
 </tr>
 <tr>
@@ -804,7 +804,7 @@ M1M2 joint model: transfusion_any
 Indirect effect
 </td>
 <td style="text-align:left;">
-0.91 (0.8-1.03)
+0.91 (0.81-1.02)
 </td>
 </tr>
 <tr>
@@ -824,7 +824,7 @@ M1M2 joint model: transfusion_any
 Total effect
 </td>
 <td style="text-align:left;">
-0.69 (0.51-0.94)
+0.69 (0.51-0.93)
 </td>
 </tr>
 </tbody>

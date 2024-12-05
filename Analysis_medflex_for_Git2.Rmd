@@ -226,7 +226,7 @@ https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/Media
 
 First we examine whether Hct alone mediates the effect of intervention of outcome
 
-```{r}
+```{r, warning =F}
 final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                   !is.na(hct_week1_peak)&
                                    !is.na(GA_weeks_and_days_integer)&
