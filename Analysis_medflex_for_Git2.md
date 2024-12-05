@@ -673,10 +673,10 @@ Direct effect
 0.7636927
 </td>
 <td style="text-align:right;">
-0.5791745
+0.5682773
 </td>
 <td style="text-align:right;">
-0.9996199
+1.0023862
 </td>
 </tr>
 <tr>
@@ -687,10 +687,10 @@ Indirect effect
 0.9072675
 </td>
 <td style="text-align:right;">
-0.8052631
+0.8020523
 </td>
 <td style="text-align:right;">
-1.0235292
+1.0343035
 </td>
 </tr>
 <tr>
@@ -701,10 +701,10 @@ Total effect
 0.6928736
 </td>
 <td style="text-align:right;">
-0.5129488
+0.5065897
 </td>
 <td style="text-align:right;">
-0.9302684
+0.9328026
 </td>
 </tr>
 </tbody>
@@ -712,13 +712,10 @@ Total effect
 
 ``` r
 prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
-paste0("Proportion mediated: ",joint.M1M2.model_transfusion_any, "%")
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
 ```
 
-    ## [1] "Proportion mediated: c(\"Direct effect\", \"Indirect effect\", \"Total effect\")%"
-    ## [2] "Proportion mediated: c(0.763692704873228, 0.90726748915055, 0.692873562832926)%"  
-    ## [3] "Proportion mediated: c(0.579174462272364, 0.805263064257347, 0.512948822349044)%" 
-    ## [4] "Proportion mediated: c(0.999619863392601, 1.02352919779915, 0.930268380966108)%"
+    ## [1] "Proportion mediated: 26.5%"
 
 # Table of results
 
@@ -784,7 +781,7 @@ M1M2 joint model: transfusion_any
 Direct effect
 </td>
 <td style="text-align:left;">
-0.76 (0.58-1)
+0.76 (0.57-1)
 </td>
 </tr>
 <tr>
@@ -804,7 +801,7 @@ M1M2 joint model: transfusion_any
 Indirect effect
 </td>
 <td style="text-align:left;">
-0.91 (0.81-1.02)
+0.91 (0.8-1.03)
 </td>
 </tr>
 <tr>

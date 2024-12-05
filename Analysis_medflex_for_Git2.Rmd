@@ -402,7 +402,9 @@ joint.M1M2.model_transfusion_any %>% kable()
 
 ```{r}
 prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
-paste0("Proportion mediated: ",joint.M1M2.model_transfusion_any, "%")
+paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
+
+
 
 
 ```
