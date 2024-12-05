@@ -250,8 +250,6 @@ neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                   se = "robust")
 
 
-#summary(neMod.extra.cont)
-
 cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
 
 lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
@@ -262,7 +260,6 @@ t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-#t
 
 
 #pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
@@ -340,7 +337,7 @@ impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                     family = binomial("logit"), nMed = 4, data = final_df1)
 
 
-#head(impData)
+
 neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+ treatment_cat11 +
                     GA_weeks_and_days_integer+
                     multiple,
@@ -360,7 +357,7 @@ lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0",
 
 
 t<-summary(lht)
-#t
+
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
@@ -381,6 +378,7 @@ cat.extra %>%
   theme_minimal() -> plot.a2
 
 plot.a2
+
 ```
 
 
@@ -393,7 +391,6 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-#cat.extra
 
 
 joint.M1M2.model_transfusion_any <- cat.extra
