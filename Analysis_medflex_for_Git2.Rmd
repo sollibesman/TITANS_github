@@ -157,10 +157,10 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
 
 
 ```{r, warning =F}
-unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
-  tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
+#unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
+#  tbl_regression(exponentiate = TRUE,
+#                 show_single_row="treatment_cat1",
+#                include = c("treatment_cat1"))
 ```
 
 
@@ -197,18 +197,16 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
 
 
 ```{r, warning =F}
-models.a<-tbl_stack(list(unadjustedmodel, 
-                         adjusted_basedlinedmodel, 
+models.a<-tbl_stack(list( adjusted_basedlinedmodel, 
                          adjusted_hct_mediator_model,
                          adjusted_severity_of_illness_mediator_model,
                          adjustedfullmodel))
 
 models.a$table_body %>%
-  mutate(name = case_when(tbl_id1==1 ~ "Unadjusted", 
-                          tbl_id1==2 ~ "Adjusted for baseline covariates" , 
-                          tbl_id1==3 ~ "Hct Mediation adjusted",
-                          tbl_id1==4 ~ "Severity of illness Mediation adjusted",
-                          tbl_id1==5 ~ "Global model with Hct, severity of illness and covariates",) %>%
+  mutate(name = case_when(tbl_id1==1 ~ "Adjusted for baseline covariates" , 
+                          tbl_id1==2 ~ "Hct Mediation adjusted",
+                          tbl_id1==3 ~ "Severity of illness Mediation adjusted",
+                          tbl_id1==4 ~ "Global model with Hct, severity of illness and covariates",) %>%
            as.factor()) %>%
   ggplot(aes(y=fct_reorder(name, -tbl_id1), x=estimate)) +
   geom_point(size=3)+
@@ -339,7 +337,7 @@ impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                     family = binomial("logit"), nMed = 4, data = final_df1)
 
 
-#head(impData)
+
 neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                               treatment_cat11+
                     GA_weeks_and_days_integer +
