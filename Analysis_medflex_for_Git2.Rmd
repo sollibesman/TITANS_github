@@ -35,7 +35,8 @@ library(kableExtra)
 opts_chunk$set(echo = TRUE,
                #comment = "#>",
                out.width = "100%",
-               warning=F)
+               warning=F
+               )
 
 ```
 
@@ -131,15 +132,9 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 ```{r, warning =F}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
-glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df) %>% broom::tidy(exponentiate = TRUE, conf.int = TRUE ) %>% filter(term!="(Intercept)") %>% select(term, estimate, conf.low, conf.high, p.value) %>% kable()
+treatmentmodel2 <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 
-
-```
-
-
-
-```{r}
-treatmentmodel %>% tbl_regression(exponentiate = TRUE)
+as_kable(treatmentmodel2, format = "markdown")
 ```
 
 
@@ -255,15 +250,12 @@ final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                    !is.na(GA_weeks_and_days_integer)&
                                   !is.na(multiple))
 
-
 impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                      hct_week1_peak +
                     GA_weeks_and_days_integer +
                     multiple,
                     family = binomial("logit"), nMed = 1, data = final_df1)
 
-
-#head(impData)
 neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                               treatment_cat11 +
                     GA_weeks_and_days_integer +
@@ -283,11 +275,7 @@ t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-
-
-#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
 pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
-#pte.indirect.cat
 
 
 cat.extra %>%
@@ -313,18 +301,9 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-
-
-
-
 M1.model_transfusion_any <- cat.extra
 
-
-M1.model_transfusion_any %>% kable() #%>% kable_styling()
-
-
-
-
+M1.model_transfusion_any %>% kable()
 
 ```
 
@@ -332,9 +311,7 @@ M1.model_transfusion_any %>% kable() #%>% kable_styling()
 ```{r}
 prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
 
-prop_mediated_M1.model_trans_any2 <- paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%")
-
-prop_mediated_M1.model_trans_any2 %>% kable()
+paste0("Proprtion mediated: ", prop_mediated_M1.model_trans_any ," (%)") %>% kable(col.names=NULL)
 
 ```
 
@@ -371,26 +348,17 @@ neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                   expData = impData,
                   se = "robust")
 
-
-summary(neMod.extra.cont)
-
 cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
 
 lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
                                           "treatment_cat111  = 0", 
                                           "treatment_cat101 + treatment_cat111  = 0"))
-
 t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-t
-
-
 #pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
 pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
-pte.indirect.cat
-
 
 cat.extra %>%
   mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
@@ -413,8 +381,6 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-cat.extra
-
 
 joint.M1M2.model_transfusion_any <- cat.extra
 
@@ -426,14 +392,10 @@ joint.M1M2.model_transfusion_any %>% kable()
 
 
 ```{r}
-
-
-
-
 prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
-prop_mediated_joint_model_trans_any2 <-  paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
 
-prop_mediated_joint_model_trans_any2 %>% kable()
+paste0("Proprtion mediated: ", prop_mediated_joint_model_trans_any ," (%)") %>% kable(col.names=NULL)
+
 ```
 
 
@@ -449,15 +411,12 @@ M1_model_results$est_for_table <- paste0(M1_model_results$Estimate, " (", M1_mod
 
 M1_model_results <- M1_model_results %>% select(id, Effect, est_for_table)
 
-
 M1M2_joint_model_results <- bind_rows(list("M1M2 joint model: transfusion_any"=joint.M1M2.model_transfusion_any), .id="id")
 M1M2_joint_model_results <- M1M2_joint_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
 M1M2_joint_model_results$est_for_table <- paste0(M1M2_joint_model_results$Estimate, " (", M1M2_joint_model_results$`95%_CI_L`,"-", M1M2_joint_model_results$`95%_CI_U`,")")
 M1M2_joint_model_results <- M1M2_joint_model_results %>% select(id, Effect, est_for_table)
 
-
 combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
-
 
 
 combined_mediation_results %>% kable()

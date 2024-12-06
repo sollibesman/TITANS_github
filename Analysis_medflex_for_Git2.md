@@ -12,535 +12,18 @@ Sol Libesman
     ```r
     treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
-    glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df) %>% broom::tidy(exponentiate = TRUE, conf.int = TRUE ) %>% filter(term!="(Intercept)") %>% select(term, estimate, conf.low, conf.high, p.value) %>% kable()
+    treatmentmodel2 <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 
-<table>
-<thead>
-<tr>
-<th style="text-align:left;">
-term
-</th>
-<th style="text-align:right;">
-estimate
-</th>
-<th style="text-align:right;">
-conf.low
-</th>
-<th style="text-align:right;">
-conf.high
-</th>
-<th style="text-align:right;">
-p.value
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-hct_week1_peak
-</td>
-<td style="text-align:right;">
-1.034706
-</td>
-<td style="text-align:right;">
-1.0189377
-</td>
-<td style="text-align:right;">
-1.051030
-</td>
-<td style="text-align:right;">
-0.0000158
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-cumalitive_blood_vol_sampled_scaled
-</td>
-<td style="text-align:right;">
-1.000711
-</td>
-<td style="text-align:right;">
-0.9954425
-</td>
-<td style="text-align:right;">
-1.006154
-</td>
-<td style="text-align:right;">
-0.7922928
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-arterial_lines
-</td>
-<td style="text-align:right;">
-1.420163
-</td>
-<td style="text-align:right;">
-1.0773354
-</td>
-<td style="text-align:right;">
-1.876116
-</td>
-<td style="text-align:right;">
-0.0131349
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-mech_vent_combined1
-</td>
-<td style="text-align:right;">
-1.110893
-</td>
-<td style="text-align:right;">
-0.7628742
-</td>
-<td style="text-align:right;">
-1.619584
-</td>
-<td style="text-align:right;">
-0.5832899
-</td>
-</tr>
-</tbody>
-</table>
+    as_kable(treatmentmodel2, format = "markdown")
 
-``` r
-treatmentmodel %>% tbl_regression(exponentiate = TRUE)
-```
-
-<div id="rtghanntmm" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#rtghanntmm table {
-  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-&#10;#rtghanntmm thead, #rtghanntmm tbody, #rtghanntmm tfoot, #rtghanntmm tr, #rtghanntmm td, #rtghanntmm th {
-  border-style: none;
-}
-&#10;#rtghanntmm p {
-  margin: 0;
-  padding: 0;
-}
-&#10;#rtghanntmm .gt_table {
-  display: table;
-  border-collapse: collapse;
-  line-height: normal;
-  margin-left: auto;
-  margin-right: auto;
-  color: #333333;
-  font-size: 16px;
-  font-weight: normal;
-  font-style: normal;
-  background-color: #FFFFFF;
-  width: auto;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #A8A8A8;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #A8A8A8;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_caption {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-&#10;#rtghanntmm .gt_title {
-  color: #333333;
-  font-size: 125%;
-  font-weight: initial;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-color: #FFFFFF;
-  border-bottom-width: 0;
-}
-&#10;#rtghanntmm .gt_subtitle {
-  color: #333333;
-  font-size: 85%;
-  font-weight: initial;
-  padding-top: 3px;
-  padding-bottom: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-color: #FFFFFF;
-  border-top-width: 0;
-}
-&#10;#rtghanntmm .gt_heading {
-  background-color: #FFFFFF;
-  text-align: center;
-  border-bottom-color: #FFFFFF;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_bottom_border {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_col_headings {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_col_heading {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 6px;
-  padding-left: 5px;
-  padding-right: 5px;
-  overflow-x: hidden;
-}
-&#10;#rtghanntmm .gt_column_spanner_outer {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-&#10;#rtghanntmm .gt_column_spanner_outer:first-child {
-  padding-left: 0;
-}
-&#10;#rtghanntmm .gt_column_spanner_outer:last-child {
-  padding-right: 0;
-}
-&#10;#rtghanntmm .gt_column_spanner {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  overflow-x: hidden;
-  display: inline-block;
-  width: 100%;
-}
-&#10;#rtghanntmm .gt_spanner_row {
-  border-bottom-style: hidden;
-}
-&#10;#rtghanntmm .gt_group_heading {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  text-align: left;
-}
-&#10;#rtghanntmm .gt_empty_group_heading {
-  padding: 0.5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: middle;
-}
-&#10;#rtghanntmm .gt_from_md > :first-child {
-  margin-top: 0;
-}
-&#10;#rtghanntmm .gt_from_md > :last-child {
-  margin-bottom: 0;
-}
-&#10;#rtghanntmm .gt_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin: 10px;
-  border-top-style: solid;
-  border-top-width: 1px;
-  border-top-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  overflow-x: hidden;
-}
-&#10;#rtghanntmm .gt_stub {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-&#10;#rtghanntmm .gt_stub_row_group {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-  vertical-align: top;
-}
-&#10;#rtghanntmm .gt_row_group_first td {
-  border-top-width: 2px;
-}
-&#10;#rtghanntmm .gt_row_group_first th {
-  border-top-width: 2px;
-}
-&#10;#rtghanntmm .gt_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-&#10;#rtghanntmm .gt_first_summary_row {
-  border-top-style: solid;
-  border-top-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_first_summary_row.thick {
-  border-top-width: 2px;
-}
-&#10;#rtghanntmm .gt_last_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_grand_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-&#10;#rtghanntmm .gt_first_grand_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-style: double;
-  border-top-width: 6px;
-  border-top-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_last_grand_summary_row_top {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: double;
-  border-bottom-width: 6px;
-  border-bottom-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_striped {
-  background-color: rgba(128, 128, 128, 0.05);
-}
-&#10;#rtghanntmm .gt_table_body {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_footnotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_footnote {
-  margin: 0px;
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-&#10;#rtghanntmm .gt_sourcenotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-&#10;#rtghanntmm .gt_sourcenote {
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-&#10;#rtghanntmm .gt_left {
-  text-align: left;
-}
-&#10;#rtghanntmm .gt_center {
-  text-align: center;
-}
-&#10;#rtghanntmm .gt_right {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-&#10;#rtghanntmm .gt_font_normal {
-  font-weight: normal;
-}
-&#10;#rtghanntmm .gt_font_bold {
-  font-weight: bold;
-}
-&#10;#rtghanntmm .gt_font_italic {
-  font-style: italic;
-}
-&#10;#rtghanntmm .gt_super {
-  font-size: 65%;
-}
-&#10;#rtghanntmm .gt_footnote_marks {
-  font-size: 75%;
-  vertical-align: 0.4em;
-  position: initial;
-}
-&#10;#rtghanntmm .gt_asterisk {
-  font-size: 100%;
-  vertical-align: 0;
-}
-&#10;#rtghanntmm .gt_indent_1 {
-  text-indent: 5px;
-}
-&#10;#rtghanntmm .gt_indent_2 {
-  text-indent: 10px;
-}
-&#10;#rtghanntmm .gt_indent_3 {
-  text-indent: 15px;
-}
-&#10;#rtghanntmm .gt_indent_4 {
-  text-indent: 20px;
-}
-&#10;#rtghanntmm .gt_indent_5 {
-  text-indent: 25px;
-}
-</style>
-<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
-  <thead>
-    &#10;    <tr class="gt_col_headings">
-      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;Characteristic&lt;/strong&gt;"><strong>Characteristic</strong></th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;OR&lt;/strong&gt;&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>OR</strong><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;95% CI&lt;/strong&gt;&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>95% CI</strong><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;p-value&lt;/strong&gt;"><strong>p-value</strong></th>
-    </tr>
-  </thead>
-  <tbody class="gt_table_body">
-    <tr><td headers="label" class="gt_row gt_left">hct_week1_peak</td>
-<td headers="estimate" class="gt_row gt_center">1.03</td>
-<td headers="ci" class="gt_row gt_center">1.02, 1.05</td>
-<td headers="p.value" class="gt_row gt_center"><0.001</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">cumalitive_blood_vol_sampled_scaled</td>
-<td headers="estimate" class="gt_row gt_center">1.00</td>
-<td headers="ci" class="gt_row gt_center">1.00, 1.01</td>
-<td headers="p.value" class="gt_row gt_center">0.8</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">arterial_lines</td>
-<td headers="estimate" class="gt_row gt_center">1.42</td>
-<td headers="ci" class="gt_row gt_center">1.08, 1.88</td>
-<td headers="p.value" class="gt_row gt_center">0.013</td></tr>
-    <tr><td headers="label" class="gt_row gt_left">mech_vent_combined</td>
-<td headers="estimate" class="gt_row gt_center"><br /></td>
-<td headers="ci" class="gt_row gt_center"><br /></td>
-<td headers="p.value" class="gt_row gt_center"><br /></td></tr>
-    <tr><td headers="label" class="gt_row gt_left">    0</td>
-<td headers="estimate" class="gt_row gt_center">—</td>
-<td headers="ci" class="gt_row gt_center">—</td>
-<td headers="p.value" class="gt_row gt_center"><br /></td></tr>
-    <tr><td headers="label" class="gt_row gt_left">    1</td>
-<td headers="estimate" class="gt_row gt_center">1.11</td>
-<td headers="ci" class="gt_row gt_center">0.76, 1.62</td>
-<td headers="p.value" class="gt_row gt_center">0.6</td></tr>
-  </tbody>
-  &#10;  <tfoot class="gt_footnotes">
-    <tr>
-      <td class="gt_footnote" colspan="4"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> OR = Odds Ratio, CI = Confidence Interval</td>
-    </tr>
-  </tfoot>
-</table>
-</div>
+| **Characteristic**                  | **OR** | **95% CI** | **p-value** |
+|:------------------------------------|:------:|:----------:|:-----------:|
+| hct_week1_peak                      |  1.03  | 1.02, 1.05 |   \<0.001   |
+| cumalitive_blood_vol_sampled_scaled |  1.00  | 1.00, 1.01 |     0.8     |
+| arterial_lines                      |  1.42  | 1.08, 1.88 |    0.013    |
+| mech_vent_combined                  |        |            |             |
+| 0                                   |   —    |     —      |             |
+| 1                                   |  1.11  | 0.76, 1.62 |     0.6     |
 
 ### global model
 
@@ -611,7 +94,7 @@ models.a$table_body %>%
 plot.a
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-11-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-10-1.png" width="100%" />
 
 # Medflex (sequential approach)
 
@@ -642,15 +125,12 @@ final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                    !is.na(GA_weeks_and_days_integer)&
                                   !is.na(multiple))
 
-
 impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                      hct_week1_peak +
                     GA_weeks_and_days_integer +
                     multiple,
                     family = binomial("logit"), nMed = 1, data = final_df1)
 
-
-#head(impData)
 neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                               treatment_cat11 +
                     GA_weeks_and_days_integer +
@@ -670,11 +150,7 @@ t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-
-
-#pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
 pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
-#pte.indirect.cat
 
 
 cat.extra %>%
@@ -690,7 +166,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-12-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-11-1.png" width="100%" />
 
 ``` r
 #Formulat for table
@@ -701,14 +177,9 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-
-
-
-
 M1.model_transfusion_any <- cat.extra
 
-
-M1.model_transfusion_any %>% kable() #%>% kable_styling()
+M1.model_transfusion_any %>% kable()
 ```
 
 <table>
@@ -777,23 +248,14 @@ Total effect
 ``` r
 prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
 
-prop_mediated_M1.model_trans_any2 <- paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%")
-
-prop_mediated_M1.model_trans_any2 %>% kable()
+paste0("Proprtion mediated: ", prop_mediated_M1.model_trans_any ," (%)") %>% kable(col.names=NULL)
 ```
 
 <table>
-<thead>
-<tr>
-<th style="text-align:left;">
-x
-</th>
-</tr>
-</thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-Proportion mediated: 37%
+Proprtion mediated: 37 (%)
 </td>
 </tr>
 </tbody>
@@ -831,60 +293,18 @@ neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
                   expData = impData,
                   se = "robust")
 
-
-summary(neMod.extra.cont)
-```
-
-    ## Natural effect model
-    ## with robust standard errors based on the sandwich estimator
-    ## ---
-    ## Exposure: treatment_cat1 
-    ## Mediator(s): hct_week1_peak, cumalitive_blood_vol_sampled, arterial_lines, mech_vent_combined 
-    ## ---
-    ## Parameter estimates:
-    ##                            Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)                0.704650   0.117695   5.987 2.14e-09 ***
-    ## treatment_cat101          -0.279055   0.140078  -1.992   0.0464 *  
-    ## treatment_cat111          -0.094764   0.062059  -1.527   0.1268    
-    ## GA_weeks_and_days_integer -0.094028   0.006043 -15.560  < 2e-16 ***
-    ## multiple1                  0.267514   0.169320   1.580   0.1141    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
 cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
 
 lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
                                           "treatment_cat111  = 0", 
                                           "treatment_cat101 + treatment_cat111  = 0"))
-
 t<-summary(lht)
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
-t
-```
-
-    ## Linear hypotheses for natural effect models
-    ## with standard errors based on the sandwich estimator
-    ## ---
-    ##                                     Estimate Std. Error z value Pr(>|z|)  
-    ## treatment_cat101                    -0.27906    0.14008  -1.992   0.0464 *
-    ## treatment_cat111                    -0.09476    0.06206  -1.527   0.1268  
-    ## treatment_cat101 + treatment_cat111 -0.37382    0.14956  -2.500   0.0124 *
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## (Univariate p-values reported)
-
-``` r
 #pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
 pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
-pte.indirect.cat
-```
 
-    ## [1] 25.35019
-
-``` r
 cat.extra %>%
   mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
   ggplot(aes(y=fct_rev(name), x=est)) +
@@ -898,7 +318,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-15-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-14-1.png" width="100%" />
 
 ``` r
 #code to table results
@@ -909,15 +329,7 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
-cat.extra
-```
 
-    ##            Effect  Estimate  95%_CI_L  95%_CI_U
-    ## 1   Direct effect 0.7564983 0.5748746 0.9955034
-    ## 2 Indirect effect 0.9095878 0.8054151 1.0272342
-    ## 3    Total effect 0.6881016 0.5132745 0.9224768
-
-``` r
 joint.M1M2.model_transfusion_any <- cat.extra
 
 joint.M1M2.model_transfusion_any %>% kable()
@@ -988,23 +400,15 @@ Total effect
 
 ``` r
 prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
-prop_mediated_joint_model_trans_any2 <-  paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
 
-prop_mediated_joint_model_trans_any2 %>% kable()
+paste0("Proprtion mediated: ", prop_mediated_joint_model_trans_any ," (%)") %>% kable(col.names=NULL)
 ```
 
 <table>
-<thead>
-<tr>
-<th style="text-align:left;">
-x
-</th>
-</tr>
-</thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-Proportion mediated: 25%
+Proprtion mediated: 25 (%)
 </td>
 </tr>
 </tbody>
@@ -1019,15 +423,12 @@ M1_model_results$est_for_table <- paste0(M1_model_results$Estimate, " (", M1_mod
 
 M1_model_results <- M1_model_results %>% select(id, Effect, est_for_table)
 
-
 M1M2_joint_model_results <- bind_rows(list("M1M2 joint model: transfusion_any"=joint.M1M2.model_transfusion_any), .id="id")
 M1M2_joint_model_results <- M1M2_joint_model_results %>% mutate(across(c(Estimate, `95%_CI_L`, `95%_CI_U`), round, digits=2) )
 M1M2_joint_model_results$est_for_table <- paste0(M1M2_joint_model_results$Estimate, " (", M1M2_joint_model_results$`95%_CI_L`,"-", M1M2_joint_model_results$`95%_CI_U`,")")
 M1M2_joint_model_results <- M1M2_joint_model_results %>% select(id, Effect, est_for_table)
 
-
 combined_mediation_results <- cbind(M1_model_results, M1M2_joint_model_results)
-
 
 
 combined_mediation_results %>% kable()
