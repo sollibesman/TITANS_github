@@ -36,6 +36,7 @@ opts_chunk$set(echo = TRUE,
                #comment = "#>",
                out.width = "100%",
                warning=F)
+
 ```
 
 
@@ -48,7 +49,12 @@ load("Y:\\Systematic Reviews\\TITANS/Data_checking_TITANS/TITANS_final_DF.rda")
 
 
 ```{r, echo=F, warning =F}
-#knit(input="Analysis_medflex_for_Git2.md", output = "TITANS_medlfex.md") 
+
+
+#### Importing
+
+
+
 
 final_df <- titans_final_df
 
@@ -77,8 +83,14 @@ final_df$calculated_total_rc_transfusions_vol1 <- ifelse(is.na(final_df$calculat
 final_df$calculated_total_rc_transfusions_vol1 <- ifelse(final_df$calculated_total_rc_transfusions_vol1==0 & final_df$rc_transfusion_titans==1, NA,final_df$calculated_total_rc_transfusions_vol1)
 
 
+
 # making infants that were yes to 'any transfusion' and 'trans vol' = 0 into NA
 final_df$calculated_total_rc_transfusions_vol <- ifelse(final_df$rc_transfusion_titans=="1"&final_df$calculated_total_rc_transfusions_vol==0, NA,final_df$calculated_total_rc_transfusions_vol)
+
+
+
+#hist(final_df$calculated_total_rc_transfusions_vol, breaks=1000)
+
 
 
 
@@ -92,7 +104,7 @@ final_df$calculated_total_rc_transfusions_vol_scaled <- final_df$calculated_tota
 
 
 #filter out hypoplastic anaemia and aplastic anaemia
-final_df <- final_df %>% filter((hypoplastic_anaemia!="1"|is.na(hypoplastic_anaemia)) &(aplastic_anaemia!="1"|is.na(aplastic_anaemia)) )
+#final_df <- final_df %>% filter((hypoplastic_anaemia!="1"|is.na(hypoplastic_anaemia)) &(aplastic_anaemia!="1"|is.na(aplastic_anaemia)) )
 
 
 #scalling because numbers are so large
@@ -100,6 +112,13 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 
 #removing outliers
  final_df$calculated_total_arterial_line_time_hr <- ifelse(final_df$calculated_total_arterial_line_time_hr<0|final_df$calculated_total_arterial_line_time_hr>2000, NA, final_df$calculated_total_arterial_line_time_hr)
+  
+
+
+
+```
+
+
   
 
 ```
@@ -112,9 +131,15 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 ```{r, warning =F}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE) %>% kable()
+glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df) %>% broom::tidy(exponentiate = TRUE, conf.int = TRUE ) %>% filter(term!="(Intercept)") %>% select(term, estimate, conf.low, conf.high, p.value) %>% kable()
 
 
+```
+
+
+
+```{r}
+treatmentmodel %>% tbl_regression(exponentiate = TRUE)
 ```
 
 
@@ -127,11 +152,9 @@ examining the relationship between treatment and transfusions (any) adjusting fo
 
 
 
-adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)
-
-
-glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>% tbl_regression(exponentiate = TRUE) %>% kable()
-
+adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%  tbl_regression(exponentiate = TRUE,
+                 show_single_row="treatment_cat1",
+                 include = c("treatment_cat1"))
 
 ```
 
@@ -226,7 +249,7 @@ https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/Media
 
 First we examine whether Hct alone mediates the effect of intervention of outcome
 
-```{r, warning =F}
+```{r}
 final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                   !is.na(hct_week1_peak)&
                                    !is.na(GA_weeks_and_days_integer)&
@@ -307,10 +330,11 @@ M1.model_transfusion_any %>% kable() #%>% kable_styling()
 
 
 ```{r}
-prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
+prop_mediated_M1.model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
 
-print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%"))
+prop_mediated_M1.model_trans_any2 <- paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%")
 
+prop_mediated_M1.model_trans_any2 %>% kable()
 
 ```
 
@@ -320,52 +344,53 @@ print(paste0("Proportion mediated: ",prop_mediated_M1.model_trans_any , "%"))
 
 Next we examine whether all mediators in a joint model contribute any additional mediation over and above Hct
 ```{r}
+
 final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
                                   !is.na(cumalitive_blood_vol_sampled)&
                                   !is.na(arterial_lines)&
-                                  !is.na(mech_vent_combined)&
-                                  !is.na(GA_weeks_and_days_integer)&
-                                  !is.na(multiple))
+                                  !is.na(mech_vent_combined))
+                                  #&
+                                  #!is.na(GA_weeks_and_days_integer)&
+                                  #!is.na(multiple))
 
-impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) + 
-                               hct_week1_peak +
-                               cumalitive_blood_vol_sampled + 
-                               arterial_lines +
-                               mech_vent_combined + 
-                               GA_weeks_and_days_integer + 
-                               multiple,
+
+#==========================================================================================================
+impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
+                     hct_week1_peak +cumalitive_blood_vol_sampled +  arterial_lines+ mech_vent_combined +
+                    GA_weeks_and_days_integer +
+                    multiple,
                     family = binomial("logit"), nMed = 4, data = final_df1)
 
 
-
-neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+ treatment_cat11 +
-                    GA_weeks_and_days_integer+
+#head(impData)
+neMod.extra.cont <- medflex::neModel(rc_transfusion_titans ~ treatment_cat10+
+                              treatment_cat11+
+                    GA_weeks_and_days_integer +
                     multiple,
                   family = binomial("logit"),
                   expData = impData,
-                 se="bootstrap",nBoot = 1000)
+                  se = "robust")
 
 
-
+summary(neMod.extra.cont)
 
 cont.extra<-data.frame(est = neMod.extra.cont$neModelFit$coefficients, confint(neMod.extra.cont))
-
 
 lht <- medflex::neLht(neMod.extra.cont, linfct = c("treatment_cat101 = 0", 
                                           "treatment_cat111  = 0", 
                                           "treatment_cat101 + treatment_cat111  = 0"))
 
-
 t<-summary(lht)
-
 
 cat.extra<-data.frame(est = exp(t$coefficients[,1]), exp(confint(lht)))
 
+t
 
 
 #pte.direct.cat<-(t$coefficients[1,1]/t$coefficients[3,1])*100
 pte.indirect.cat<-(t$coefficients[2,1]/t$coefficients[3,1])*100
-#pte.indirect.cat
+pte.indirect.cat
+
 
 cat.extra %>%
   mutate(name = c("Direct effect", "Indirect effect", "Total effect")) %>%
@@ -379,11 +404,8 @@ cat.extra %>%
 
 plot.a2
 
-```
 
-
-```{r}
-#Formulat for table
+#code to table results
 cat.extra <- cat.extra %>%
   mutate(Effect = c("Direct effect", "Indirect effect", "Total effect")) %>% relocate(Effect) %>% dplyr::rename(
     "Estimate"= est,
@@ -391,22 +413,27 @@ cat.extra <- cat.extra %>%
    "95%_CI_U"= `X95..UCL`,)
 row.names(cat.extra) <- NULL
 
+cat.extra
 
 
 joint.M1M2.model_transfusion_any <- cat.extra
 
-
 joint.M1M2.model_transfusion_any %>% kable()
+
 ```
 
 
+
+
 ```{r}
-prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),1)
-paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
 
 
 
 
+prop_mediated_joint_model_trans_any <-  round((t$coef[3]/(t$coef[2]+t$coef[3])*100),0)
+prop_mediated_joint_model_trans_any2 <-  paste0("Proportion mediated: ",prop_mediated_joint_model_trans_any, "%")
+
+prop_mediated_joint_model_trans_any2 %>% kable()
 ```
 
 
