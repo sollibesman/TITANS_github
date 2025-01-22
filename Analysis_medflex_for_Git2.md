@@ -82,7 +82,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-5-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-4-1.png" width="100%" />
 
 ``` r
 #Formulat for table
@@ -121,13 +121,13 @@ Estimate
 Direct effect
 </td>
 <td style="text-align:right;">
-0.7601151
+0.7646152
 </td>
 <td style="text-align:right;">
-0.5811334
+0.5842532
 </td>
 <td style="text-align:right;">
-0.9942208
+1.0006559
 </td>
 </tr>
 <tr>
@@ -135,13 +135,13 @@ Direct effect
 Indirect effect
 </td>
 <td style="text-align:right;">
-0.8540546
+0.8535287
 </td>
 <td style="text-align:right;">
-0.7876051
+0.7870670
 </td>
 <td style="text-align:right;">
-0.9261104
+0.9256026
 </td>
 </tr>
 <tr>
@@ -149,13 +149,13 @@ Indirect effect
 Total effect
 </td>
 <td style="text-align:right;">
-0.6491798
+0.6526210
 </td>
 <td style="text-align:right;">
-0.4951578
+0.4973579
 </td>
 <td style="text-align:right;">
-0.8511112
+0.8563536
 </td>
 </tr>
 </tbody>
@@ -233,7 +233,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-8-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-7-1.png" width="100%" />
 
 ``` r
 #code to table results
@@ -273,13 +273,13 @@ Estimate
 Direct effect
 </td>
 <td style="text-align:right;">
-0.7564983
+0.7636927
 </td>
 <td style="text-align:right;">
-0.5748746
+0.5800280
 </td>
 <td style="text-align:right;">
-0.9955034
+1.0055144
 </td>
 </tr>
 <tr>
@@ -287,13 +287,13 @@ Direct effect
 Indirect effect
 </td>
 <td style="text-align:right;">
-0.9095878
+0.9072675
 </td>
 <td style="text-align:right;">
-0.8054151
+0.8029812
 </td>
 <td style="text-align:right;">
-1.0272342
+1.0250978
 </td>
 </tr>
 <tr>
@@ -301,13 +301,13 @@ Indirect effect
 Total effect
 </td>
 <td style="text-align:right;">
-0.6881016
+0.6928736
 </td>
 <td style="text-align:right;">
-0.5132745
+0.5162991
 </td>
 <td style="text-align:right;">
-0.9224768
+0.9298366
 </td>
 </tr>
 </tbody>
@@ -323,7 +323,7 @@ paste0("Proprtion mediated: ", prop_mediated_joint_model_trans_any ," (%)") %>% 
 <tbody>
 <tr>
 <td style="text-align:left;">
-Proprtion mediated: 25 (%)
+Proprtion mediated: 27 (%)
 </td>
 </tr>
 </tbody>
@@ -381,7 +381,7 @@ M1 only: transfusion_any
 Direct effect
 </td>
 <td style="text-align:left;">
-0.76 (0.58-0.99)
+0.76 (0.58-1)
 </td>
 <td style="text-align:left;">
 M1M2 joint model: transfusion_any
@@ -390,7 +390,7 @@ M1M2 joint model: transfusion_any
 Direct effect
 </td>
 <td style="text-align:left;">
-0.76 (0.57-1)
+0.76 (0.58-1.01)
 </td>
 </tr>
 <tr>
@@ -410,7 +410,7 @@ M1M2 joint model: transfusion_any
 Indirect effect
 </td>
 <td style="text-align:left;">
-0.91 (0.81-1.03)
+0.91 (0.8-1.03)
 </td>
 </tr>
 <tr>
@@ -421,7 +421,7 @@ M1 only: transfusion_any
 Total effect
 </td>
 <td style="text-align:left;">
-0.65 (0.5-0.85)
+0.65 (0.5-0.86)
 </td>
 <td style="text-align:left;">
 M1M2 joint model: transfusion_any
@@ -430,7 +430,7 @@ M1M2 joint model: transfusion_any
 Total effect
 </td>
 <td style="text-align:left;">
-0.69 (0.51-0.92)
+0.69 (0.52-0.93)
 </td>
 </tr>
 </tbody>
