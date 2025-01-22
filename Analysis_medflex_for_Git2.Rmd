@@ -151,52 +151,30 @@ adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
-```
 
-
-
-
-```{r, warning =F}
 #unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
 #  tbl_regression(exponentiate = TRUE,
 #                 show_single_row="treatment_cat1",
 #                include = c("treatment_cat1"))
-```
 
-
-```{r, warning =F}
 adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)%>%  
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
-```
 
-
-```{r, warning =F}
 adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
-```
 
-
-```{r, warning =F}
 adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
-```
 
-
-```{r, warning =F}
 adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
-```
 
-
-
-
-```{r, warning =F}
 models.a<-tbl_stack(list( adjusted_basedlinedmodel, 
                          adjusted_hct_mediator_model,
                          adjusted_severity_of_illness_mediator_model,
