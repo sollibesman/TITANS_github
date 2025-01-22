@@ -34,8 +34,7 @@ library(kableExtra)
 
 opts_chunk$set(echo = TRUE,
                #comment = "#>",
-               out.width = "100%",
-               warning=F
+               out.width = "100%"
                )
 
 ```
@@ -122,14 +121,13 @@ final_df$cumalitive_blood_vol_sampled_scaled <- final_df$cumalitive_blood_vol_sa
 
   
 
-```
+
+
+
+```{r, include=F}
 
 # Checking associations
-
 ### Between treatment and mediators
-
-
-```{r, warning =F}
 treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
 
 treatmentmodel2 <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
@@ -138,40 +136,37 @@ as_kable(treatmentmodel2, format = "markdown")
 ```
 
 
+
+
+```{r, include=F}
+
 ### global model
-
-examining the relationship between treatment and transfusions (any) adjusting for all covariates
-
-
-```{r, warning =F}
+#examining the relationship between treatment and transfusions (any) adjusting for all covariates
 
 
-
-adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%  tbl_regression(exponentiate = TRUE,
+adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%  
+tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
-
-#unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
-#  tbl_regression(exponentiate = TRUE,
-#                 show_single_row="treatment_cat1",
-#                include = c("treatment_cat1"))
 
 adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)%>%  
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
-adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
+adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>% 
   tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
-adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
+adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%  
+tbl_regression(exponentiate = TRUE, 
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
-adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
+adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
+tbl_regression(exponentiate = TRUE,
                  show_single_row="treatment_cat1",
                  include = c("treatment_cat1"))
 
@@ -199,17 +194,18 @@ plot.a
 
 # Medflex (sequential approach)
 
-Modeling approach informed by
+Modeling approach informed by Tyler VanderWeele and Stijn Vansteelandt paper:
+https://www.degruyter.com/document/doi/10.1515/em-2012-0010/html
 
-kristy Robledo's paper
+kristy Robledo's paper:
 https://academic.oup.com/ejendo/article/189/1/50/7219871?login=true
 https://github.com/kristyrobledo/T4DM_mediation_paper
 
-Zoe Aitken's paper on sequential mediation
+Zoe Aitken's paper on sequential mediation:
 https://academic.oup.com/ije/article/47/3/829/4829681?login=true 
 
 
-and D Zugna's instruction paper
+and D Zugna's instruction paper:
 https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-022-01764-w
 (sup materials)
 https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/MediaObjects/12874_2022_1764_MOESM1_ESM.pdf
@@ -301,10 +297,9 @@ Next we examine whether all mediators in a joint model contribute any additional
 final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
                                   !is.na(cumalitive_blood_vol_sampled)&
                                   !is.na(arterial_lines)&
-                                  !is.na(mech_vent_combined))
-                                  #&
-                                  #!is.na(GA_weeks_and_days_integer)&
-                                  #!is.na(multiple))
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
 
 
 #==========================================================================================================

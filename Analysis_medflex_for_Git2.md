@@ -2,110 +2,20 @@ Medflex
 ================
 Sol Libesman
 
-
-    # Checking associations
-
-    ### Between treatment and mediators
-
-
-
-    ```r
-    treatmentmodel <- glm(treatment_cat1  ~ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined,  family =  binomial("logit"), data = final_df)
-
-    treatmentmodel2 <- treatmentmodel %>% tbl_regression(exponentiate = TRUE)
-
-    as_kable(treatmentmodel2, format = "markdown")
-
-| **Characteristic**                  | **OR** | **95% CI** | **p-value** |
-|:------------------------------------|:------:|:----------:|:-----------:|
-| hct_week1_peak                      |  1.03  | 1.02, 1.05 |   \<0.001   |
-| cumalitive_blood_vol_sampled_scaled |  1.00  | 1.00, 1.01 |     0.8     |
-| arterial_lines                      |  1.42  | 1.08, 1.88 |    0.013    |
-| mech_vent_combined                  |        |            |             |
-| 0                                   |   —    |     —      |             |
-| 1                                   |  1.11  | 0.76, 1.62 |     0.6     |
-
-### global model
-
-examining the relationship between treatment and transfusions (any)
-adjusting for all covariates
-
-``` r
-adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%  tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
-```
-
-``` r
-#unadjustedmodel <- glm(rc_transfusion_titans ~ treatment_cat1,  family =  binomial("logit"), data = final_df) %>%
-#  tbl_regression(exponentiate = TRUE,
-#                 show_single_row="treatment_cat1",
-#                include = c("treatment_cat1"))
-```
-
-``` r
-adjusted_basedlinedmodel <- glm(rc_transfusion_titans ~ treatment_cat1+GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df)%>%  
-  tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
-```
-
-``` r
-adjusted_hct_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   
-  tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
-```
-
-``` r
-adjusted_severity_of_illness_mediator_model <- glm(rc_transfusion_titans ~ treatment_cat1+ cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
-```
-
-``` r
-adjustedfullmodel <- glm(rc_transfusion_titans ~ treatment_cat1+ hct_week1_peak+cumalitive_blood_vol_sampled_scaled +arterial_lines+mech_vent_combined +GA_weeks_and_days_integer + multiple,  family =  binomial("logit"), data = final_df) %>%   tbl_regression(exponentiate = TRUE,
-                 show_single_row="treatment_cat1",
-                 include = c("treatment_cat1"))
-```
-
-``` r
-models.a<-tbl_stack(list( adjusted_basedlinedmodel, 
-                         adjusted_hct_mediator_model,
-                         adjusted_severity_of_illness_mediator_model,
-                         adjustedfullmodel))
-
-models.a$table_body %>%
-  mutate(name = case_when(tbl_id1==1 ~ "Adjusted for baseline covariates" , 
-                          tbl_id1==2 ~ "Hct Mediation adjusted",
-                          tbl_id1==3 ~ "Severity of illness Mediation adjusted",
-                          tbl_id1==4 ~ "Global model with Hct, severity of illness and covariates",) %>%
-           as.factor()) %>%
-  ggplot(aes(y=fct_reorder(name, -tbl_id1), x=estimate)) +
-  geom_point(size=3)+
-  geom_errorbar(aes(xmax=conf.high, xmin=conf.low), size=0.5, width=0.1) +
-  labs(x="Odds ratio of treatment effect on transfusion any (y/n)", y="")+
-  geom_vline(aes(xintercept= 1), linetype="dotted")+
-  coord_trans(x = scales:::log_trans(base = exp(1))) +
-  theme_minimal() -> plot.a
-
-plot.a
-```
-
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-10-1.png" width="100%" />
-
 # Medflex (sequential approach)
 
-Modeling approach informed by
+Modeling approach informed by Tyler VanderWeele and Stijn Vansteelandt
+paper:
+<https://www.degruyter.com/document/doi/10.1515/em-2012-0010/html>
 
-kristy Robledo’s paper
+kristy Robledo’s paper:
 <https://academic.oup.com/ejendo/article/189/1/50/7219871?login=true>
 <https://github.com/kristyrobledo/T4DM_mediation_paper>
 
-Zoe Aitken’s paper on sequential mediation
+Zoe Aitken’s paper on sequential mediation:
 <https://academic.oup.com/ije/article/47/3/829/4829681?login=true>
 
-and D Zugna’s instruction paper
+and D Zugna’s instruction paper:
 <https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-022-01764-w>
 (sup materials)
 <https://static-content.springer.com/esm/art%3A10.1186%2Fs12874-022-01764-w/MediaObjects/12874_2022_1764_MOESM1_ESM.pdf>
@@ -122,7 +32,15 @@ final_df1 <- final_df %>% filter(!is.na(rc_transfusion_titans) &
                                   !is.na(hct_week1_peak)&
                                    !is.na(GA_weeks_and_days_integer)&
                                   !is.na(multiple))
+```
 
+    ## Warning: Using one column matrices in `filter()` was deprecated in dplyr 1.1.0.
+    ## ℹ Please use one dimensional logical vectors instead.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+``` r
 impData <- medflex::neImpute(rc_transfusion_titans ~ factor(treatment_cat1) +
                      hct_week1_peak +
                     GA_weeks_and_days_integer +
@@ -164,7 +82,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-11-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-5-1.png" width="100%" />
 
 ``` r
 #Formulat for table
@@ -268,10 +186,9 @@ additional mediation over and above Hct
 final_df1 <- final_df %>% filter(!is.na(hct_week1_peak)&
                                   !is.na(cumalitive_blood_vol_sampled)&
                                   !is.na(arterial_lines)&
-                                  !is.na(mech_vent_combined))
-                                  #&
-                                  #!is.na(GA_weeks_and_days_integer)&
-                                  #!is.na(multiple))
+                                  !is.na(mech_vent_combined)&
+                                  !is.na(GA_weeks_and_days_integer)&
+                                  !is.na(multiple))
 
 
 #==========================================================================================================
@@ -316,7 +233,7 @@ cat.extra %>%
 plot.a2
 ```
 
-<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-14-1.png" width="100%" />
+<img src="Analysis_medflex_for_Git2_files/figure-gfm/unnamed-chunk-8-1.png" width="100%" />
 
 ``` r
 #code to table results
